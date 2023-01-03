@@ -16,10 +16,14 @@ class Index:
     def _build_index(self, docs):
         for doc_id, doc in enumerate(docs):
             self._doc_ids[doc_id] = doc
-            tokenized = list(_ja_tokenizer.tokenize(doc))
-            for token in tokenized:
+            tokens = self._analyze(doc)
+            for token in tokens:
                 self._add_surfaces(doc_id, token)
                 self._add_readings(doc_id, token)
+
+    def _analyze(self, doc):
+        # TODO: apply filters etc..
+        return list(_ja_tokenizer.tokenize(doc))
 
     def _add_readings(self, doc_id, token):
         reading = wanakana.to_hiragana(token.reading)
@@ -33,13 +37,13 @@ class Index:
             self._index[surface] = []
         self._index[surface].append(doc_id)
 
-    def search(self, sequence: str):
+    def search(self, query: str):
         candidates = defaultdict(float)
-        tokenized = list(_ja_tokenizer.tokenize(sequence))
-        for token in tokenized:
+        tokens = self._analyze(query)
+        for token in tokens:
             self._extract(candidates, token.node.surface)
-            self._extract(candidates, sequence)
             self._extract(candidates, wanakana.to_hiragana(token.reading))
+            self._extract(candidates, query)
         results = sorted(candidates.items(), key=lambda x: x[1], reverse=True)
         return list(map(lambda x: (self._doc_ids[x[0]], x[1]), results))
 
